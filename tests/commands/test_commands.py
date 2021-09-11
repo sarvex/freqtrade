@@ -10,10 +10,10 @@ import pytest
 
 from freqtrade.commands import (start_convert_data, start_create_userdir, start_download_data,
                                 start_hyperopt_list, start_hyperopt_show, start_install_ui,
-                                start_list_data, start_list_exchanges, start_list_hyperopts,
-                                start_list_markets, start_list_strategies, start_list_timeframes,
-                                start_new_strategy, start_show_trades,
-                                start_test_pairlist, start_trading, start_webserver)
+                                start_list_data, start_list_exchanges, start_list_markets,
+                                start_list_strategies, start_list_timeframes, start_new_strategy,
+                                start_show_trades, start_test_pairlist, start_trading,
+                                start_webserver)
 from freqtrade.commands.deploy_commands import (clean_ui_subdir, download_and_install_ui,
                                                 get_ui_download_url, read_ui_version)
 from freqtrade.configuration import setup_utils_configuration
@@ -792,38 +792,6 @@ def test_start_list_strategies(mocker, caplog, capsys):
     assert "TestStrategyLegacyV1" in captured.out
     assert "legacy_strategy_v1.py" in captured.out
     assert "StrategyTestV2" in captured.out
-
-
-def test_start_list_hyperopts(mocker, caplog, capsys):
-
-    args = [
-        "list-hyperopts",
-        "--hyperopt-path",
-        str(Path(__file__).parent.parent / "optimize" / "hyperopts"),
-        "-1"
-    ]
-    pargs = get_args(args)
-    # pargs['config'] = None
-    start_list_hyperopts(pargs)
-    captured = capsys.readouterr()
-    assert "TestHyperoptLegacy" not in captured.out
-    assert "legacy_hyperopt.py" not in captured.out
-    assert "HyperoptTestSepFile" in captured.out
-    assert "test_hyperopt.py" not in captured.out
-
-    # Test regular output
-    args = [
-        "list-hyperopts",
-        "--hyperopt-path",
-        str(Path(__file__).parent.parent / "optimize" / "hyperopts"),
-    ]
-    pargs = get_args(args)
-    # pargs['config'] = None
-    start_list_hyperopts(pargs)
-    captured = capsys.readouterr()
-    assert "TestHyperoptLegacy" not in captured.out
-    assert "legacy_hyperopt.py" not in captured.out
-    assert "HyperoptTestSepFile" in captured.out
 
 
 def test_start_test_pairlist(mocker, caplog, tickers, default_conf, capsys):
