@@ -42,10 +42,10 @@ ORDER_TYPES = [
 
 
 def trim_dictlist(dict_list, num):
-    new = {}
-    for pair, pair_data in dict_list.items():
-        new[pair] = pair_data[num:].reset_index()
-    return new
+    return {
+        pair: pair_data[num:].reset_index()
+        for pair, pair_data in dict_list.items()
+    }
 
 
 def load_data_test(what, testdatadir):
@@ -56,17 +56,17 @@ def load_data_test(what, testdatadir):
                                      fill_up_missing=False)
 
     base = 0.001
-    if what == 'raise':
-        data.loc[:, 'open'] = data.index * base
-        data.loc[:, 'high'] = data.index * base + 0.0001
-        data.loc[:, 'low'] = data.index * base - 0.0001
-        data.loc[:, 'close'] = data.index * base
-
     if what == 'lower':
         data.loc[:, 'open'] = 1 - data.index * base
         data.loc[:, 'high'] = 1 - data.index * base + 0.0001
         data.loc[:, 'low'] = 1 - data.index * base - 0.0001
         data.loc[:, 'close'] = 1 - data.index * base
+
+    elif what == 'raise':
+        data.loc[:, 'open'] = data.index * base
+        data.loc[:, 'high'] = data.index * base + 0.0001
+        data.loc[:, 'low'] = data.index * base - 0.0001
+        data.loc[:, 'close'] = data.index * base
 
     if what == 'sine':
         hz = 0.1  # frequency
@@ -89,7 +89,7 @@ def simple_backtest(config, contour, mocker, testdatadir) -> None:
     processed = backtesting.strategy.advise_all_indicators(data)
     min_date, max_date = get_timerange(processed)
     assert isinstance(processed, dict)
-    results = backtesting.backtest(
+    return backtesting.backtest(
         processed=processed,
         start_date=min_date,
         end_date=max_date,
@@ -97,8 +97,6 @@ def simple_backtest(config, contour, mocker, testdatadir) -> None:
         position_stacking=False,
         enable_protections=config.get('enable_protections', False),
     )
-    # results :: <class 'pandas.core.frame.DataFrame'>
-    return results
 
 
 # FIX: fixturize this?
@@ -166,7 +164,7 @@ def test_setup_optimize_configuration_without_arguments(mocker, default_conf, ca
     assert 'exchange' in config
     assert 'pair_whitelist' in config['exchange']
     assert 'datadir' in config
-    assert log_has('Using data directory: {} ...'.format(config['datadir']), caplog)
+    assert log_has(f"Using data directory: {config['datadir']} ...", caplog)
     assert 'timeframe' in config
     assert not log_has_re('Parameter -i/--ticker-interval detected .*', caplog)
 
@@ -209,7 +207,7 @@ def test_setup_bt_configuration_with_arguments(mocker, default_conf, caplog) -> 
     assert 'datadir' in config
     assert config['runmode'] == RunMode.BACKTEST
 
-    assert log_has('Using data directory: {} ...'.format(config['datadir']), caplog)
+    assert log_has(f"Using data directory: {config['datadir']} ...", caplog)
     assert 'timeframe' in config
     assert log_has('Parameter -i/--timeframe detected ... Using timeframe: 1m ...',
                    caplog)
@@ -222,15 +220,22 @@ def test_setup_bt_configuration_with_arguments(mocker, default_conf, caplog) -> 
     assert log_has('max_open_trades set to unlimited ...', caplog)
 
     assert 'timerange' in config
-    assert log_has('Parameter --timerange detected: {} ...'.format(config['timerange']), caplog)
+    assert log_has(
+        f"Parameter --timerange detected: {config['timerange']} ...", caplog
+    )
 
     assert 'export' in config
     assert 'exportfilename' in config
     assert isinstance(config['exportfilename'], Path)
-    assert log_has('Storing backtest results to {} ...'.format(config['exportfilename']), caplog)
+    assert log_has(
+        f"Storing backtest results to {config['exportfilename']} ...", caplog
+    )
 
     assert 'fee' in config
-    assert log_has('Parameter --fee detected, setting fee to: {} ...'.format(config['fee']), caplog)
+    assert log_has(
+        f"Parameter --fee detected, setting fee to: {config['fee']} ...",
+        caplog,
+    )
 
 
 def test_setup_optimize_configuration_stake_amount(mocker, default_conf, caplog) -> None:
@@ -357,7 +362,7 @@ def test_backtest_abort(default_conf, mocker, testdatadir) -> None:
     with pytest.raises(DependencyException, match="Stop requested"):
         backtesting.check_abort()
     # abort flag resets
-    assert backtesting.abort is False
+    assert not backtesting.abort
     assert backtesting.progress.progress == 0
 
 
@@ -853,10 +858,7 @@ def test_backtest_multi_pair(default_conf, fee, mocker, tres, pair, testdatadir)
         """
         Buy every xth candle - sell every other xth -2 (hold on to pairs a bit)
         """
-        if metadata['pair'] in ('ETH/BTC', 'LTC/BTC'):
-            multi = 20
-        else:
-            multi = 18
+        multi = 20 if metadata['pair'] in ('ETH/BTC', 'LTC/BTC') else 18
         dataframe['buy'] = np.where(dataframe.index % multi == 0, 1, 0)
         dataframe['sell'] = np.where((dataframe.index + multi - 2) % multi == 0, 1, 0)
         return dataframe

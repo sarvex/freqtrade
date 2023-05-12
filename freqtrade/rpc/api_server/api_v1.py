@@ -113,17 +113,13 @@ def edge(rpc: RPC = Depends(get_rpc)):
 
 @router.get('/show_config', response_model=ShowConfig, tags=['info'])
 def show_config(rpc: Optional[RPC] = Depends(get_rpc_optional), config=Depends(get_config)):
-    state = ''
-    if rpc:
-        state = rpc._freqtrade.state
+    state = rpc._freqtrade.state if rpc else ''
     return RPC._rpc_show_config(config, state)
 
 
 @router.post('/forcebuy', response_model=ForceBuyResponse, tags=['trading'])
 def forcebuy(payload: ForceBuyPayload, rpc: RPC = Depends(get_rpc)):
-    trade = rpc._rpc_forcebuy(payload.pair, payload.price)
-
-    if trade:
+    if trade := rpc._rpc_forcebuy(payload.pair, payload.price):
         return ForceBuyResponse.parse_obj(trade.to_json())
     else:
         return ForceBuyResponse.parse_obj({"status": f"Error buying pair {payload.pair}."})
@@ -251,11 +247,9 @@ def list_available_pairs(timeframe: Optional[str] = None, stake_currency: Option
         pair_interval = [pair for pair in pair_interval if pair[0].endswith(stake_currency)]
     pair_interval = sorted(pair_interval, key=lambda x: x[0])
 
-    pairs = list({x[0] for x in pair_interval})
-    pairs.sort()
-    result = {
+    pairs = sorted({x[0] for x in pair_interval})
+    return {
         'length': len(pairs),
         'pairs': pairs,
         'pair_interval': pair_interval,
     }
-    return result

@@ -324,22 +324,30 @@ def test_generate_sell_reason_stats():
 def test_text_table_strategy(default_conf):
     default_conf['max_open_trades'] = 2
     default_conf['dry_run_wallet'] = 3
-    results = {}
     date = datetime.datetime(year=2020, month=1, day=1, hour=12, minute=30)
     delta = datetime.timedelta(days=1)
-    results['TestStrategy1'] = {'results': pd.DataFrame(
-        {
-            'pair': ['ETH/BTC', 'ETH/BTC', 'ETH/BTC'],
-            'close_date': [date, date + delta, date + delta * 2],
-            'profit_ratio': [0.1, 0.2, 0.3],
-            'profit_abs': [0.2, 0.4, 0.5],
-            'trade_duration': [10, 30, 10],
-            'wins': [2, 0, 0],
-            'draws': [0, 0, 0],
-            'losses': [0, 0, 1],
-            'sell_reason': [SellType.ROI, SellType.ROI, SellType.STOP_LOSS]
+    results = {
+        'TestStrategy1': {
+            'results': pd.DataFrame(
+                {
+                    'pair': ['ETH/BTC', 'ETH/BTC', 'ETH/BTC'],
+                    'close_date': [date, date + delta, date + delta * 2],
+                    'profit_ratio': [0.1, 0.2, 0.3],
+                    'profit_abs': [0.2, 0.4, 0.5],
+                    'trade_duration': [10, 30, 10],
+                    'wins': [2, 0, 0],
+                    'draws': [0, 0, 0],
+                    'losses': [0, 0, 1],
+                    'sell_reason': [
+                        SellType.ROI,
+                        SellType.ROI,
+                        SellType.STOP_LOSS,
+                    ],
+                }
+            ),
+            'config': default_conf,
         }
-    ), 'config': default_conf}
+    }
     results['TestStrategy2'] = {'results': pd.DataFrame(
         {
             'pair': ['LTC/BTC', 'LTC/BTC', 'LTC/BTC'],
@@ -371,8 +379,7 @@ def test_text_table_strategy(default_conf):
 
 def test_generate_edge_table():
 
-    results = {}
-    results['ETH/BTC'] = PairInfo(-0.01, 0.60, 2, 1, 3, 10, 60)
+    results = {'ETH/BTC': PairInfo(-0.01, 0.60, 2, 1, 3, 10, 60)}
     assert generate_edge_table(results).count('+') == 7
     assert generate_edge_table(results).count('| ETH/BTC |') == 1
     assert generate_edge_table(results).count(

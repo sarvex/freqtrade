@@ -135,9 +135,8 @@ def _load_cached_data_for_updating(pair: str, timeframe: str, timerange: Optiona
     Note: Only used by download_pair_history().
     """
     start = None
-    if timerange:
-        if timerange.starttype == 'date':
-            start = datetime.fromtimestamp(timerange.startts, tz=timezone.utc)
+    if timerange and timerange.starttype == 'date':
+        start = datetime.fromtimestamp(timerange.startts, tz=timezone.utc)
 
     # Intentionally don't pass timerange in - since we need to load the full dataset.
     data = data_handler.ohlcv_load(pair, timeframe=timeframe,
@@ -244,10 +243,9 @@ def refresh_backtest_ohlcv_data(exchange: Exchange, pairs: List[str], timeframes
             continue
         for timeframe in timeframes:
 
-            if erase:
-                if data_handler.ohlcv_purge(pair, timeframe):
-                    logger.info(
-                        f'Deleting existing data for pair {pair}, interval {timeframe}.')
+            if erase and data_handler.ohlcv_purge(pair, timeframe):
+                logger.info(
+                    f'Deleting existing data for pair {pair}, interval {timeframe}.')
 
             logger.info(f'Downloading pair {pair}, interval {timeframe}.')
             process = f'{idx}/{len(pairs)}'
@@ -340,9 +338,8 @@ def refresh_backtest_trades_data(exchange: Exchange, pairs: List[str], datadir: 
             logger.info(f"Skipping pair {pair}...")
             continue
 
-        if erase:
-            if data_handler.trades_purge(pair):
-                logger.info(f'Deleting existing data for pair {pair}.')
+        if erase and data_handler.trades_purge(pair):
+            logger.info(f'Deleting existing data for pair {pair}.')
 
         logger.info(f'Downloading trades for pair {pair}.')
         _download_trades_history(exchange=exchange,
@@ -366,9 +363,8 @@ def convert_trades_to_ohlcv(pairs: List[str], timeframes: List[str],
     for pair in pairs:
         trades = data_handler_trades.trades_load(pair)
         for timeframe in timeframes:
-            if erase:
-                if data_handler_ohlcv.ohlcv_purge(pair, timeframe):
-                    logger.info(f'Deleting existing data for pair {pair}, interval {timeframe}.')
+            if erase and data_handler_ohlcv.ohlcv_purge(pair, timeframe):
+                logger.info(f'Deleting existing data for pair {pair}, interval {timeframe}.')
             try:
                 ohlcv = trades_to_ohlcv(trades, timeframe)
                 # Store ohlcv

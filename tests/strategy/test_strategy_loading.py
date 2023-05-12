@@ -64,7 +64,7 @@ def test_load_strategy(default_conf, result):
 def test_load_strategy_base64(result, caplog, default_conf):
     with (Path(__file__).parents[2] / 'freqtrade/templates/sample_strategy.py').open("rb") as file:
         encoded_string = urlsafe_b64encode(file.read()).decode("utf-8")
-    default_conf.update({'strategy': 'SampleStrategy:{}'.format(encoded_string)})
+    default_conf.update({'strategy': f'SampleStrategy:{encoded_string}'})
 
     strategy = StrategyResolver.load_strategy(default_conf)
     assert 'rsi' in strategy.advise_indicators(result, {'pair': 'ETH/BTC'})

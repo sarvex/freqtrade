@@ -6,14 +6,11 @@ from .webserver import ApiServer
 
 
 def get_rpc_optional() -> Optional[RPC]:
-    if ApiServer._has_rpc:
-        return ApiServer._rpc
-    return None
+    return ApiServer._rpc if ApiServer._has_rpc else None
 
 
 def get_rpc() -> Optional[RPC]:
-    _rpc = get_rpc_optional()
-    if _rpc:
+    if _rpc := get_rpc_optional():
         return _rpc
     else:
         raise RPCException('Bot is not in the correct state')

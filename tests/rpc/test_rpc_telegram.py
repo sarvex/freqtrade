@@ -354,10 +354,10 @@ def test_daily_handle(default_conf, update, ticker, limit_buy_order, fee,
     assert msg_mock.call_count == 1
     assert 'Daily' in msg_mock.call_args_list[0][0][0]
     assert str(datetime.utcnow().date()) in msg_mock.call_args_list[0][0][0]
-    assert str('  0.00006217 BTC') in msg_mock.call_args_list[0][0][0]
-    assert str('  0.933 USD') in msg_mock.call_args_list[0][0][0]
-    assert str('  1 trade') in msg_mock.call_args_list[0][0][0]
-    assert str('  0 trade') in msg_mock.call_args_list[0][0][0]
+    assert '  0.00006217 BTC' in msg_mock.call_args_list[0][0][0]
+    assert '  0.933 USD' in msg_mock.call_args_list[0][0][0]
+    assert '  1 trade' in msg_mock.call_args_list[0][0][0]
+    assert '  0 trade' in msg_mock.call_args_list[0][0][0]
 
     # Reset msg_mock
     msg_mock.reset_mock()
@@ -366,10 +366,10 @@ def test_daily_handle(default_conf, update, ticker, limit_buy_order, fee,
     assert msg_mock.call_count == 1
     assert 'Daily' in msg_mock.call_args_list[0][0][0]
     assert str(datetime.utcnow().date()) in msg_mock.call_args_list[0][0][0]
-    assert str('  0.00006217 BTC') in msg_mock.call_args_list[0][0][0]
-    assert str('  0.933 USD') in msg_mock.call_args_list[0][0][0]
-    assert str('  1 trade') in msg_mock.call_args_list[0][0][0]
-    assert str('  0 trade') in msg_mock.call_args_list[0][0][0]
+    assert '  0.00006217 BTC' in msg_mock.call_args_list[0][0][0]
+    assert '  0.933 USD' in msg_mock.call_args_list[0][0][0]
+    assert '  1 trade' in msg_mock.call_args_list[0][0][0]
+    assert '  0 trade' in msg_mock.call_args_list[0][0][0]
 
     # Reset msg_mock
     msg_mock.reset_mock()
@@ -389,9 +389,9 @@ def test_daily_handle(default_conf, update, ticker, limit_buy_order, fee,
     context = MagicMock()
     context.args = ["1"]
     telegram._daily(update=update, context=context)
-    assert str('  0.00018651 BTC') in msg_mock.call_args_list[0][0][0]
-    assert str('  2.798 USD') in msg_mock.call_args_list[0][0][0]
-    assert str('  3 trades') in msg_mock.call_args_list[0][0][0]
+    assert '  0.00018651 BTC' in msg_mock.call_args_list[0][0][0]
+    assert '  2.798 USD' in msg_mock.call_args_list[0][0][0]
+    assert '  3 trades' in msg_mock.call_args_list[0][0][0]
 
 
 def test_daily_wrong_input(default_conf, update, ticker, mocker) -> None:
@@ -420,7 +420,7 @@ def test_daily_wrong_input(default_conf, update, ticker, mocker) -> None:
     context = MagicMock()
     context.args = ["today"]
     telegram._daily(update=update, context=context)
-    assert str('Daily Profit over the last 7 days') in msg_mock.call_args_list[0][0][0]
+    assert 'Daily Profit over the last 7 days' in msg_mock.call_args_list[0][0][0]
 
 
 def test_profit_handle(default_conf, update, ticker, ticker_sell_up, fee,
@@ -993,11 +993,7 @@ def test_count_handle(default_conf, update, ticker, fee, mocker) -> None:
     msg_mock.reset_mock()
     telegram._count(update=update, context=MagicMock())
 
-    msg = ('<pre>  current    max    total stake\n---------  -----  -------------\n'
-           '        1      {}          {}</pre>').format(
-            default_conf['max_open_trades'],
-            default_conf['stake_amount']
-        )
+    msg = f"<pre>  current    max    total stake\n---------  -----  -------------\n        1      {default_conf['max_open_trades']}          {default_conf['stake_amount']}</pre>"
     assert msg in msg_mock.call_args_list[0][0][0]
 
 
@@ -1223,7 +1219,7 @@ def test_version_handle(default_conf, update, mocker) -> None:
 
     telegram._version(update=update, context=MagicMock())
     assert msg_mock.call_count == 1
-    assert '*Version:* `{}`'.format(__version__) in msg_mock.call_args_list[0][0][0]
+    assert f'*Version:* `{__version__}`' in msg_mock.call_args_list[0][0][0]
 
 
 def test_show_config_handle(default_conf, update, mocker) -> None:
@@ -1234,7 +1230,7 @@ def test_show_config_handle(default_conf, update, mocker) -> None:
 
     telegram._show_config(update=update, context=MagicMock())
     assert msg_mock.call_count == 1
-    assert '*Mode:* `{}`'.format('Dry-run') in msg_mock.call_args_list[0][0][0]
+    assert f'*Mode:* `Dry-run`' in msg_mock.call_args_list[0][0][0]
     assert '*Exchange:* `binance`' in msg_mock.call_args_list[0][0][0]
     assert '*Strategy:* `StrategyTestV2`' in msg_mock.call_args_list[0][0][0]
     assert '*Stoploss:* `-0.1`' in msg_mock.call_args_list[0][0][0]
@@ -1243,7 +1239,7 @@ def test_show_config_handle(default_conf, update, mocker) -> None:
     freqtradebot.config['trailing_stop'] = True
     telegram._show_config(update=update, context=MagicMock())
     assert msg_mock.call_count == 1
-    assert '*Mode:* `{}`'.format('Dry-run') in msg_mock.call_args_list[0][0][0]
+    assert f'*Mode:* `Dry-run`' in msg_mock.call_args_list[0][0][0]
     assert '*Exchange:* `binance`' in msg_mock.call_args_list[0][0][0]
     assert '*Strategy:* `StrategyTestV2`' in msg_mock.call_args_list[0][0][0]
     assert '*Initial Stoploss:* `-0.1`' in msg_mock.call_args_list[0][0][0]

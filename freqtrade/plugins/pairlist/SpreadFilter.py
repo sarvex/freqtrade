@@ -45,13 +45,12 @@ class SpreadFilter(IPairList):
         """
         if 'bid' in ticker and 'ask' in ticker and ticker['ask']:
             spread = 1 - ticker['bid'] / ticker['ask']
-            if spread > self._max_spread_ratio:
-                self.log_once(f"Removed {pair} from whitelist, because spread "
-                              f"{spread * 100:.3f}% > {self._max_spread_ratio * 100}%",
-                              logger.info)
-                return False
-            else:
+            if spread <= self._max_spread_ratio:
                 return True
+            self.log_once(f"Removed {pair} from whitelist, because spread "
+                          f"{spread * 100:.3f}% > {self._max_spread_ratio * 100}%",
+                          logger.info)
+            return False
         self.log_once(f"Removed {pair} from whitelist due to invalid ticker data: {ticker}",
                       logger.info)
         return False

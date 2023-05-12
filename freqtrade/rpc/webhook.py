@@ -31,9 +31,10 @@ class Webhook(RPCHandler):
 
         self._format = self._config['webhook'].get('format', 'form')
 
-        if self._format != 'form' and self._format != 'json':
-            raise NotImplementedError('Unknown webhook format `{}`, possible values are '
-                                      '`form` (default) and `json`'.format(self._format))
+        if self._format not in ['form', 'json']:
+            raise NotImplementedError(
+                f'Unknown webhook format `{self._format}`, possible values are `form` (default) and `json`'
+            )
 
     def cleanup(self) -> None:
         """
@@ -63,7 +64,7 @@ class Webhook(RPCHandler):
                                  RPCMessageType.WARNING):
                 valuedict = self._config['webhook'].get('webhookstatus', None)
             else:
-                raise NotImplementedError('Unknown message type: {}'.format(msg['type']))
+                raise NotImplementedError(f"Unknown message type: {msg['type']}")
             if not valuedict:
                 logger.info("Message type '%s' not configured for webhooks", msg['type'])
                 return
@@ -83,7 +84,7 @@ class Webhook(RPCHandler):
             elif self._format == 'json':
                 post(self._url, json=payload)
             else:
-                raise NotImplementedError('Unknown format: {}'.format(self._format))
+                raise NotImplementedError(f'Unknown format: {self._format}')
 
         except RequestException as exc:
             logger.warning("Could not call webhook url. Exception: %s", exc)

@@ -37,7 +37,7 @@ def _validate_ohlc(buy_ohlc_sell_matrice):
     for index, ohlc in enumerate(buy_ohlc_sell_matrice):
         # if not high < open < low or not high < close < low
         if not ohlc[3] >= ohlc[2] >= ohlc[4] or not ohlc[3] >= ohlc[5] >= ohlc[4]:
-            raise Exception('Line ' + str(index + 1) + ' of ohlc has invalid values!')
+            raise Exception(f'Line {str(index + 1)} of ohlc has invalid values!')
     return True
 
 
@@ -295,11 +295,14 @@ def mocked_load_data(datadir, pairs=[], timeframe='0m',
             123.45
         ] for x in range(0, 500)]
 
-    pairdata = {'NEO/BTC': ohlcv_to_dataframe(NEOBTC, '1h', pair="NEO/BTC",
-                                              fill_missing=True),
-                'LTC/BTC': ohlcv_to_dataframe(LTCBTC, '1h', pair="LTC/BTC",
-                                              fill_missing=True)}
-    return pairdata
+    return {
+        'NEO/BTC': ohlcv_to_dataframe(
+            NEOBTC, '1h', pair="NEO/BTC", fill_missing=True
+        ),
+        'LTC/BTC': ohlcv_to_dataframe(
+            LTCBTC, '1h', pair="LTC/BTC", fill_missing=True
+        ),
+    }
 
 
 def test_edge_process_downloaded_data(mocker, edge_conf):

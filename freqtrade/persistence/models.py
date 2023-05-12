@@ -40,14 +40,10 @@ def init_db(db_url: str, clean_open_orders: bool = False) -> None:
     kwargs = {}
 
     if db_url == 'sqlite://':
-        kwargs.update({
-            'poolclass': StaticPool,
-        })
+        kwargs['poolclass'] = StaticPool
     # Take care of thread ownership
     if db_url.startswith('sqlite://'):
-        kwargs.update({
-            'connect_args': {'check_same_thread': False},
-        })
+        kwargs['connect_args'] = {'check_same_thread': False}
 
     try:
         engine = create_engine(db_url, future=True, **kwargs)
@@ -174,8 +170,7 @@ class Order(_DECL_BASE):
             logger.warning(f"{order} is not a valid response object.")
             return
 
-        filtered_orders = [o for o in orders if o.order_id == order.get('id')]
-        if filtered_orders:
+        if filtered_orders := [o for o in orders if o.order_id == order.get('id')]:
             oobj = filtered_orders[0]
             oobj.update_from_ccxt_object(order)
             Order.query.session.commit()
@@ -376,7 +371,7 @@ class LocalTrade():
         :param initial: Called to initiate stop_loss.
             Skips everything if self.stop_loss is already set.
         """
-        if initial and not (self.stop_loss is None or self.stop_loss == 0):
+        if initial and self.stop_loss is not None and self.stop_loss != 0:
             # Don't modify if called with initial and nothing to do
             return
 
@@ -389,13 +384,11 @@ class LocalTrade():
             self.initial_stop_loss = new_loss
             self.initial_stop_loss_pct = -1 * abs(stoploss)
 
-        # evaluate if the stop loss needs to be updated
+        elif new_loss > self.stop_loss:  # stop losses only walk up, never down!
+            logger.debug(f"{self.pair} - Adjusting stoploss...")
+            self._set_new_stoploss(new_loss, stoploss)
         else:
-            if new_loss > self.stop_loss:  # stop losses only walk up, never down!
-                logger.debug(f"{self.pair} - Adjusting stoploss...")
-                self._set_new_stoploss(new_loss, stoploss)
-            else:
-                logger.debug(f"{self.pair} - Keeping current stoploss...")
+            logger.debug(f"{self.pair} - Keeping current stoploss...")
 
         logger.debug(
             f"{self.pair} - Stoploss adjusted. current_price={current_price:.8f}, "
@@ -569,10 +562,7 @@ class LocalTrade():
         orders = [o for o in self.orders if o.side == order_side]
         if is_open is not None:
             orders = [o for o in orders if o.ft_is_open == is_open]
-        if len(orders) > 0:
-            return orders[-1]
-        else:
-            return None
+        return orders[-1] if orders else None
 
     @staticmethod
     def get_trades_proxy(*, pair: str = None, is_open: bool = None,
@@ -589,11 +579,7 @@ class LocalTrade():
 
         # Offline mode - without database
         if is_open is not None:
-            if is_open:
-                sel_trades = LocalTrade.trades_open
-            else:
-                sel_trades = LocalTrade.trades
-
+            sel_trades = LocalTrade.trades_open if is_open else LocalTrade.trades
         else:
             # Not used during backtesting, but might be used by a strategy
             sel_trades = list(LocalTrade.trades + LocalTrade.trades_open)
@@ -736,23 +722,22 @@ class Trade(_DECL_BASE, LocalTrade):
 
         :return: unsorted List[Trade]
         """
-        if Trade.use_db:
-            trade_filter = []
-            if pair:
-                trade_filter.append(Trade.pair == pair)
-            if open_date:
-                trade_filter.append(Trade.open_date > open_date)
-            if close_date:
-                trade_filter.append(Trade.close_date > close_date)
-            if is_open is not None:
-                trade_filter.append(Trade.is_open.is_(is_open))
-            return Trade.get_trades(trade_filter).all()
-        else:
+        if not Trade.use_db:
             return LocalTrade.get_trades_proxy(
                 pair=pair, is_open=is_open,
                 open_date=open_date,
                 close_date=close_date
             )
+        trade_filter = []
+        if pair:
+            trade_filter.append(Trade.pair == pair)
+        if open_date:
+            trade_filter.append(Trade.open_date > open_date)
+        if close_date:
+            trade_filter.append(Trade.close_date > close_date)
+        if is_open is not None:
+            trade_filter.append(Trade.is_open.is_(is_open))
+        return Trade.get_trades(trade_filter).all()
 
     @staticmethod
     def get_trades(trade_filter=None) -> Query:
@@ -767,12 +752,11 @@ class Trade(_DECL_BASE, LocalTrade):
         """
         if not Trade.use_db:
             raise NotImplementedError('`Trade.get_trades()` not supported in backtesting mode.')
-        if trade_filter is not None:
-            if not isinstance(trade_filter, list):
-                trade_filter = [trade_filter]
-            return Trade.query.filter(*trade_filter)
-        else:
+        if trade_filter is None:
             return Trade.query
+        if not isinstance(trade_filter, list):
+            trade_filter = [trade_filter]
+        return Trade.query.filter(*trade_filter)
 
     @staticmethod
     def get_open_order_trades():
@@ -863,12 +847,15 @@ class Trade(_DECL_BASE, LocalTrade):
         NOTE: Not supported in Backtesting.
         :returns: Tuple containing (pair, profit_sum)
         """
-        best_pair = Trade.query.with_entities(
-            Trade.pair, func.sum(Trade.close_profit).label('profit_sum')
-        ).filter(Trade.is_open.is_(False) & (Trade.close_date >= start_date)) \
-            .group_by(Trade.pair) \
-            .order_by(desc('profit_sum')).first()
-        return best_pair
+        return (
+            Trade.query.with_entities(
+                Trade.pair, func.sum(Trade.close_profit).label('profit_sum')
+            )
+            .filter(Trade.is_open.is_(False) & (Trade.close_date >= start_date))
+            .group_by(Trade.pair)
+            .order_by(desc('profit_sum'))
+            .first()
+        )
 
 
 class PairLock(_DECL_BASE):

@@ -44,7 +44,8 @@ class EdgeCli:
             'timerange') is None else str(self.config.get('timerange')))
 
     def start(self) -> None:
-        result = self.edge.calculate(self.config['exchange']['pair_whitelist'])
-        if result:
+        if result := self.edge.calculate(
+            self.config['exchange']['pair_whitelist']
+        ):
             print('')  # blank line for readability
             print(generate_edge_table(self.edge._cached_pairs))

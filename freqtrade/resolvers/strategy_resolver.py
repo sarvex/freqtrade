@@ -45,13 +45,15 @@ class StrategyResolver(IResolver):
             strategy_name, config=config,
             extra_dir=config.get('strategy_path'))
 
-        if hasattr(strategy, 'ticker_interval') and not hasattr(strategy, 'timeframe'):
-            # Assign ticker_interval to timeframe to keep compatibility
-            if 'timeframe' not in config:
-                logger.warning(
-                    "DEPRECATED: Please migrate to using 'timeframe' instead of 'ticker_interval'."
-                )
-                strategy.timeframe = strategy.ticker_interval
+        if (
+            hasattr(strategy, 'ticker_interval')
+            and not hasattr(strategy, 'timeframe')
+            and 'timeframe' not in config
+        ):
+            logger.warning(
+                "DEPRECATED: Please migrate to using 'timeframe' instead of 'ticker_interval'."
+            )
+            strategy.timeframe = strategy.ticker_interval
 
         if strategy._ft_params_from_file:
             # Set parameters from Hyperopt results file
@@ -154,11 +156,11 @@ class StrategyResolver(IResolver):
 
     @staticmethod
     def _strategy_sanity_validations(strategy):
-        if not all(k in strategy.order_types for k in REQUIRED_ORDERTYPES):
+        if any(k not in strategy.order_types for k in REQUIRED_ORDERTYPES):
             raise ImportError(f"Impossible to load Strategy '{strategy.__class__.__name__}'. "
                               f"Order-types mapping is incomplete.")
 
-        if not all(k in strategy.order_time_in_force for k in REQUIRED_ORDERTIF):
+        if any(k not in strategy.order_time_in_force for k in REQUIRED_ORDERTIF):
             raise ImportError(f"Impossible to load Strategy '{strategy.__class__.__name__}'. "
                               f"Order-time-in-force mapping is incomplete.")
 
@@ -183,7 +185,7 @@ class StrategyResolver(IResolver):
 
             if len(strat) == 2:
                 temp = Path(tempfile.mkdtemp("freq", "strategy"))
-                name = strat[0] + ".py"
+                name = f"{strat[0]}.py"
 
                 temp.joinpath(name).write_text(urlsafe_b64decode(strat[1]).decode('utf-8'))
                 temp.joinpath("__init__.py").touch()
@@ -193,18 +195,20 @@ class StrategyResolver(IResolver):
                 # register temp path with the bot
                 abs_paths.insert(0, temp.resolve())
 
-        strategy = StrategyResolver._load_object(paths=abs_paths,
-                                                 object_name=strategy_name,
-                                                 add_source=True,
-                                                 kwargs={'config': config},
-                                                 )
-        if strategy:
+        if strategy := StrategyResolver._load_object(
+            paths=abs_paths,
+            object_name=strategy_name,
+            add_source=True,
+            kwargs={'config': config},
+        ):
             strategy._populate_fun_len = len(getfullargspec(strategy.populate_indicators).args)
             strategy._buy_fun_len = len(getfullargspec(strategy.populate_buy_trend).args)
             strategy._sell_fun_len = len(getfullargspec(strategy.populate_sell_trend).args)
-            if any(x == 2 for x in [strategy._populate_fun_len,
-                                    strategy._buy_fun_len,
-                                    strategy._sell_fun_len]):
+            if 2 in [
+                strategy._populate_fun_len,
+                strategy._buy_fun_len,
+                strategy._sell_fun_len,
+            ]:
                 strategy.INTERFACE_VERSION = 1
 
             return strategy

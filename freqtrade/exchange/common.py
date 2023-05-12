@@ -68,7 +68,7 @@ def retrier_async(f):
             if count > 0:
                 logger.warning('retrying %s() still for %s times', f.__name__, count)
                 count -= 1
-                kwargs.update({'count': count})
+                kwargs['count'] = count
                 if isinstance(ex, DDosProtection):
                     backoff_delay = calculate_backoff(count + 1, API_RETRY_COUNT)
                     logger.info(f"Applying DDosProtection backoff delay: {backoff_delay}")
@@ -77,6 +77,7 @@ def retrier_async(f):
             else:
                 logger.warning('Giving up retrying: %s()', f.__name__)
                 raise ex
+
     return wrapper
 
 
@@ -92,7 +93,7 @@ def retrier(_func=None, retries=API_RETRY_COUNT):
                 if count > 0:
                     logger.warning('retrying %s() still for %s times', f.__name__, count)
                     count -= 1
-                    kwargs.update({'count': count})
+                    kwargs['count'] = count
                     if isinstance(ex, (DDosProtection, RetryableOrderError)):
                         # increasing backoff
                         backoff_delay = calculate_backoff(count + 1, retries)
@@ -102,9 +103,8 @@ def retrier(_func=None, retries=API_RETRY_COUNT):
                 else:
                     logger.warning('Giving up retrying: %s()', f.__name__)
                     raise ex
+
         return wrapper
+
     # Support both @retrier and @retrier(retries=2) syntax
-    if _func is None:
-        return decorator
-    else:
-        return decorator(_func)
+    return decorator if _func is None else decorator(_func)

@@ -75,12 +75,11 @@ class ApiServer(RPCHandler):
         """
         Attach rpc handler
         """
-        if not self._has_rpc:
-            ApiServer._rpc = rpc
-            ApiServer._has_rpc = True
-        else:
+        if self._has_rpc:
             # This should not happen assuming we didn't mess up.
             raise OperationalException('RPC Handler already attached.')
+        ApiServer._rpc = rpc
+        ApiServer._has_rpc = True
 
     def cleanup(self) -> None:
         """ Cleanup pending module resources """
@@ -162,13 +161,14 @@ class ApiServer(RPCHandler):
         logger.info('Starting Local Rest Server.')
         verbosity = self._config['api_server'].get('verbosity', 'error')
 
-        uvconfig = uvicorn.Config(self.app,
-                                  port=rest_port,
-                                  host=rest_ip,
-                                  use_colors=False,
-                                  log_config=None,
-                                  access_log=True if verbosity != 'error' else False,
-                                  )
+        uvconfig = uvicorn.Config(
+            self.app,
+            port=rest_port,
+            host=rest_ip,
+            use_colors=False,
+            log_config=None,
+            access_log=verbosity != 'error',
+        )
         try:
             self._server = UvicornServer(uvconfig)
             if self._standalone:

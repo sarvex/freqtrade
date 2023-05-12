@@ -25,10 +25,12 @@ def _extend_validator(validator_class):
             if 'default' in subschema:
                 instance.setdefault(prop, subschema['default'])
 
-        for error in validate_properties(
-            validator, properties, instance, schema,
-        ):
-            yield error
+        yield from validate_properties(
+            validator,
+            properties,
+            instance,
+            schema,
+        )
 
     return validators.extend(
         validator_class, {'properties': set_defaults}
@@ -122,9 +124,7 @@ def _validate_trailing_stoploss(conf: Dict[str, Any]) -> None:
 
     tsl_positive = float(conf.get('trailing_stop_positive', 0))
     tsl_offset = float(conf.get('trailing_stop_positive_offset', 0))
-    tsl_only_offset = conf.get('trailing_only_offset_is_reached', False)
-
-    if tsl_only_offset:
+    if tsl_only_offset := conf.get('trailing_only_offset_is_reached', False):
         if tsl_positive == 0.0:
             raise OperationalException(
                 'The config trailing_only_offset_is_reached needs '
@@ -199,11 +199,10 @@ def _validate_ask_orderbook(conf: Dict[str, Any]) -> None:
                 "Using order_book_max != order_book_min in ask_strategy is no longer supported."
                 "Please pick one value and use `order_book_top` in the future."
             )
-        else:
-            # Move value to order_book_top
-            ask_strategy['order_book_top'] = ob_min
-            logger.warning(
-                "DEPRECATED: "
-                "Please use `order_book_top` instead of `order_book_min` and `order_book_max` "
-                "for your `ask_strategy` configuration."
-            )
+        # Move value to order_book_top
+        ask_strategy['order_book_top'] = ob_min
+        logger.warning(
+            "DEPRECATED: "
+            "Please use `order_book_top` instead of `order_book_min` and `order_book_max` "
+            "for your `ask_strategy` configuration."
+        )

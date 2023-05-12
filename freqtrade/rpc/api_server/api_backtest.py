@@ -28,7 +28,7 @@ async def api_start_backtest(bt_settings: BacktestRequest, background_tasks: Bac
     btconfig = deepcopy(config)
     settings = dict(bt_settings)
     # Pydantic models will contain all keys, but non-provided ones are None
-    for setting in settings.keys():
+    for setting in settings:
         if settings[setting] is not None:
             btconfig[setting] = settings[setting]
 
@@ -81,7 +81,6 @@ async def api_start_backtest(bt_settings: BacktestRequest, background_tasks: Bac
 
         except DependencyException as e:
             logger.info(f"Backtesting caused an error: {e}")
-            pass
         finally:
             ApiServer._bgtask_running = False
 

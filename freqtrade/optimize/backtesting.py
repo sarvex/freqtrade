@@ -132,7 +132,9 @@ class Backtesting:
             None if self.config.get('timerange') is None else str(self.config.get('timerange')))
 
         # Get maximum required startup period
-        self.required_startup = max([strat.startup_candle_count for strat in self.strategylist])
+        self.required_startup = max(
+            strat.startup_candle_count for strat in self.strategylist
+        )
         # Add maximum startup candle count to configuration for informative pairs support
         self.config['startup_candle_count'] = self.required_startup
         self.exchange.validate_required_startup_candles(self.required_startup, self.timeframe)
@@ -317,32 +319,29 @@ class Backtesting:
             return trade.stop_loss
         elif sell.sell_type == (SellType.ROI):
             roi_entry, roi = self.strategy.min_roi_reached_entry(trade_dur)
-            if roi is not None and roi_entry is not None:
-                if roi == -1 and roi_entry % self.timeframe_min == 0:
-                    # When forceselling with ROI=-1, the roi time will always be equal to trade_dur.
-                    # If that entry is a multiple of the timeframe (so on candle open)
-                    # - we'll use open instead of close
-                    return sell_row[OPEN_IDX]
-
-                # - (Expected abs profit + open_rate + open_fee) / (fee_close -1)
-                close_rate = - (trade.open_rate * roi + trade.open_rate *
-                                (1 + trade.fee_open)) / (trade.fee_close - 1)
-
-                if (trade_dur > 0 and trade_dur == roi_entry
-                        and roi_entry % self.timeframe_min == 0
-                        and sell_row[OPEN_IDX] > close_rate):
-                    # new ROI entry came into effect.
-                    # use Open rate if open_rate > calculated sell rate
-                    return sell_row[OPEN_IDX]
-
-                # Use the maximum between close_rate and low as we
-                # cannot sell outside of a candle.
-                # Applies when a new ROI setting comes in place and the whole candle is above that.
-                return min(max(close_rate, sell_row[LOW_IDX]), sell_row[HIGH_IDX])
-
-            else:
+            if roi is None or roi_entry is None:
                 # This should not be reached...
                 return sell_row[OPEN_IDX]
+            if roi == -1 and roi_entry % self.timeframe_min == 0:
+                # When forceselling with ROI=-1, the roi time will always be equal to trade_dur.
+                # If that entry is a multiple of the timeframe (so on candle open)
+                # - we'll use open instead of close
+                return sell_row[OPEN_IDX]
+
+            # - (Expected abs profit + open_rate + open_fee) / (fee_close -1)
+            close_rate = - (trade.open_rate * roi + trade.open_rate *
+                            (1 + trade.fee_open)) / (trade.fee_close - 1)
+
+            return (
+                sell_row[OPEN_IDX]
+                if (
+                    trade_dur > 0
+                    and trade_dur == roi_entry
+                    and roi_entry % self.timeframe_min == 0
+                    and sell_row[OPEN_IDX] > close_rate
+                )
+                else min(max(close_rate, sell_row[LOW_IDX]), sell_row[HIGH_IDX])
+            )
         else:
             return sell_row[OPEN_IDX]
 
@@ -376,30 +375,27 @@ class Backtesting:
         return None
 
     def _get_sell_trade_entry(self, trade: LocalTrade, sell_row: Tuple) -> Optional[LocalTrade]:
-        if self.timeframe_detail and trade.pair in self.detail_data:
-            sell_candle_time = sell_row[DATE_IDX].to_pydatetime()
-            sell_candle_end = sell_candle_time + timedelta(minutes=self.timeframe_min)
-
-            detail_data = self.detail_data[trade.pair]
-            detail_data = detail_data.loc[
-                (detail_data['date'] >= sell_candle_time) &
-                (detail_data['date'] < sell_candle_end)
-             ]
-            if len(detail_data) == 0:
-                # Fall back to "regular" data if no detail data was found for this candle
-                return self._get_sell_trade_entry_for_candle(trade, sell_row)
-            detail_data['buy'] = sell_row[BUY_IDX]
-            detail_data['sell'] = sell_row[SELL_IDX]
-            headers = ['date', 'buy', 'open', 'close', 'sell', 'low', 'high']
-            for det_row in detail_data[headers].values.tolist():
-                res = self._get_sell_trade_entry_for_candle(trade, det_row)
-                if res:
-                    return res
-
-            return None
-
-        else:
+        if not self.timeframe_detail or trade.pair not in self.detail_data:
             return self._get_sell_trade_entry_for_candle(trade, sell_row)
+        sell_candle_time = sell_row[DATE_IDX].to_pydatetime()
+        sell_candle_end = sell_candle_time + timedelta(minutes=self.timeframe_min)
+
+        detail_data = self.detail_data[trade.pair]
+        detail_data = detail_data.loc[
+            (detail_data['date'] >= sell_candle_time) &
+            (detail_data['date'] < sell_candle_end)
+         ]
+        if len(detail_data) == 0:
+            # Fall back to "regular" data if no detail data was found for this candle
+            return self._get_sell_trade_entry_for_candle(trade, sell_row)
+        detail_data['buy'] = sell_row[BUY_IDX]
+        detail_data['sell'] = sell_row[SELL_IDX]
+        headers = ['date', 'buy', 'open', 'close', 'sell', 'low', 'high']
+        for det_row in detail_data[headers].values.tolist():
+            if res := self._get_sell_trade_entry_for_candle(trade, det_row):
+                return res
+
+        return None
 
     def _enter_trade(self, pair: str, row: List) -> Optional[LocalTrade]:
         try:
@@ -430,7 +426,7 @@ class Backtesting:
         if stake_amount and (not min_stake_amount or stake_amount > min_stake_amount):
             # Enter trade
             has_buy_tag = len(row) >= BUY_TAG_IDX + 1
-            trade = LocalTrade(
+            return LocalTrade(
                 pair=pair,
                 open_rate=row[OPEN_IDX],
                 open_date=row[DATE_IDX].to_pydatetime(),
@@ -442,7 +438,6 @@ class Backtesting:
                 buy_tag=row[BUY_TAG_IDX] if has_buy_tag else None,
                 exchange='backtesting',
             )
-            return trade
         return None
 
     def handle_left_open(self, open_trades: Dict[str, List[LocalTrade]],
@@ -451,7 +446,7 @@ class Backtesting:
         Handling of left open trades at the end of backtesting
         """
         trades = []
-        for pair in open_trades.keys():
+        for pair in open_trades:
             if len(open_trades[pair]) > 0:
                 for trade in open_trades[pair]:
                     sell_row = data[pair][-1]
@@ -544,8 +539,7 @@ class Backtesting:
                     and row[SELL_IDX] != 1
                     and not PairLocks.is_pair_locked(pair, row[DATE_IDX])
                 ):
-                    trade = self._enter_trade(pair, row)
-                    if trade:
+                    if trade := self._enter_trade(pair, row):
                         # TODO: hacky workaround to avoid opening > max_open_trades
                         # This emulates previous behaviour - not sure if this is correct
                         # Prevents buying if the trade-slot was freed in this candle
@@ -556,10 +550,7 @@ class Backtesting:
                         LocalTrade.add_bt_trade(trade)
 
                 for trade in list(open_trades[pair]):
-                    # also check the buying candle for sell conditions.
-                    trade_entry = self._get_sell_trade_entry(trade, row)
-                    # Sell occurred
-                    if trade_entry:
+                    if trade_entry := self._get_sell_trade_entry(trade, row):
                         # logger.debug(f"{pair} - Backtesting sell {trade}")
                         open_trade_count -= 1
                         open_trades[pair].remove(trade)

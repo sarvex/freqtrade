@@ -68,20 +68,22 @@ def ask_user_config() -> Dict[str, Any]:
             "name": "stake_amount",
             "message": f"Please insert your stake amount (Number or '{UNLIMITED_STAKE_AMOUNT}'):",
             "default": "100",
-            "validate": lambda val: val == UNLIMITED_STAKE_AMOUNT or validate_is_float(val),
-            "filter": lambda val: '"' + UNLIMITED_STAKE_AMOUNT + '"'
+            "validate": lambda val: val == UNLIMITED_STAKE_AMOUNT
+            or validate_is_float(val),
+            "filter": lambda val: f'"{UNLIMITED_STAKE_AMOUNT}"'
             if val == UNLIMITED_STAKE_AMOUNT
-            else val
+            else val,
         },
         {
             "type": "text",
             "name": "max_open_trades",
             "message": f"Please insert max_open_trades (Integer or '{UNLIMITED_STAKE_AMOUNT}'):",
             "default": "3",
-            "validate": lambda val: val == UNLIMITED_STAKE_AMOUNT or validate_is_int(val),
-            "filter": lambda val: '"' + UNLIMITED_STAKE_AMOUNT + '"'
+            "validate": lambda val: val == UNLIMITED_STAKE_AMOUNT
+            or validate_is_int(val),
+            "filter": lambda val: f'"{UNLIMITED_STAKE_AMOUNT}"'
             if val == UNLIMITED_STAKE_AMOUNT
-            else val
+            else val,
         },
         {
             "type": "text",
@@ -116,25 +118,26 @@ def ask_user_config() -> Dict[str, Any]:
             "name": "exchange_name",
             "message": "Type your exchange name (Must be supported by ccxt)",
             "choices": available_exchanges(),
-            "when": lambda x: x["exchange_name"] == 'other'
+            "when": lambda x: x["exchange_name"] == 'other',
         },
         {
             "type": "password",
             "name": "exchange_key",
             "message": "Insert Exchange Key",
-            "when": lambda x: not x['dry_run']
+            "when": lambda x: not x['dry_run'],
         },
         {
             "type": "password",
             "name": "exchange_secret",
             "message": "Insert Exchange Secret",
-            "when": lambda x: not x['dry_run']
+            "when": lambda x: not x['dry_run'],
         },
         {
             "type": "password",
             "name": "exchange_key_password",
             "message": "Insert Exchange API Key password",
-            "when": lambda x: not x['dry_run'] and x['exchange_name'] == 'kucoin'
+            "when": lambda x: not x['dry_run']
+            and x['exchange_name'] == 'kucoin',
         },
         {
             "type": "confirm",
@@ -146,13 +149,13 @@ def ask_user_config() -> Dict[str, Any]:
             "type": "password",
             "name": "telegram_token",
             "message": "Insert Telegram token",
-            "when": lambda x: x['telegram']
+            "when": lambda x: x['telegram'],
         },
         {
             "type": "text",
             "name": "telegram_chat_id",
             "message": "Insert Telegram chat id",
-            "when": lambda x: x['telegram']
+            "when": lambda x: x['telegram'],
         },
         {
             "type": "confirm",
@@ -165,20 +168,20 @@ def ask_user_config() -> Dict[str, Any]:
             "name": "api_server_listen_addr",
             "message": "Insert Api server Listen Address (best left untouched default!)",
             "default": "127.0.0.1",
-            "when": lambda x: x['api_server']
+            "when": lambda x: x['api_server'],
         },
         {
             "type": "text",
             "name": "api_server_username",
             "message": "Insert api-server username",
             "default": "freqtrader",
-            "when": lambda x: x['api_server']
+            "when": lambda x: x['api_server'],
         },
         {
             "type": "text",
             "name": "api_server_password",
             "message": "Insert api-server password",
-            "when": lambda x: x['api_server']
+            "when": lambda x: x['api_server'],
         },
     ]
     answers = prompt(questions)
@@ -233,8 +236,7 @@ def start_new_config(args: Dict[str, Any]) -> None:
     config_path = Path(args['config'][0])
     chown_user_directory(config_path.parent)
     if config_path.exists():
-        overwrite = ask_user_overwrite(config_path)
-        if overwrite:
+        if overwrite := ask_user_overwrite(config_path):
             config_path.unlink()
         else:
             raise OperationalException(

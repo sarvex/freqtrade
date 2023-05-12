@@ -40,7 +40,7 @@ def _backup_file(file: Path, copy_file: bool = False) -> None:
     :param copy_file: keep file in place too.
     :return: None
     """
-    file_swp = str(file) + '.swp'
+    file_swp = f'{str(file)}.swp'
     if file.is_file():
         file.rename(file_swp)
 
@@ -54,7 +54,7 @@ def _clean_test_file(file: Path) -> None:
     :param file: complete path to the file
     :return: None
     """
-    file_swp = Path(str(file) + '.swp')
+    file_swp = Path(f'{str(file)}.swp')
     # 1. Delete file from the test
     if file.is_file():
         file.unlink()
@@ -721,14 +721,12 @@ def test_hdf5datahandler_trades_load(testdatadir):
     # Check that ID is None (If it's nan, it's wrong)
     assert trades2[0][2] is None
 
-    # unfiltered load has trades before starttime
-    assert len([t for t in trades if t[0] < timerange.startts * 1000]) >= 0
     # filtered list does not have trades before starttime
-    assert len([t for t in trades2 if t[0] < timerange.startts * 1000]) == 0
+    assert not [t for t in trades2 if t[0] < timerange.startts * 1000]
     # unfiltered load has trades after endtime
-    assert len([t for t in trades if t[0] > timerange.stopts * 1000]) > 0
+    assert [t for t in trades if t[0] > timerange.stopts * 1000]
     # filtered list does not have trades after endtime
-    assert len([t for t in trades2 if t[0] > timerange.stopts * 1000]) == 0
+    assert not [t for t in trades2 if t[0] > timerange.stopts * 1000]
 
 
 def test_hdf5datahandler_trades_store(testdatadir, tmpdir):

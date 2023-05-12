@@ -38,24 +38,15 @@ class Wallets:
 
     def get_free(self, currency: str) -> float:
         balance = self._wallets.get(currency)
-        if balance and balance.free:
-            return balance.free
-        else:
-            return 0
+        return balance.free if balance and balance.free else 0
 
     def get_used(self, currency: str) -> float:
         balance = self._wallets.get(currency)
-        if balance and balance.used:
-            return balance.used
-        else:
-            return 0
+        return balance.used if balance and balance.used else 0
 
     def get_total(self, currency: str) -> float:
         balance = self._wallets.get(currency)
-        if balance and balance.total:
-            return balance.total
-        else:
-            return 0
+        return balance.total if balance and balance.total else 0
 
     def _update_dry(self) -> None:
         """
@@ -64,8 +55,6 @@ class Wallets:
         - Subtract currently tied up stake_amount in open trades
         - update balances for currencies currently in trades
         """
-        # Recreate _wallets to reset closed trade balances
-        _wallets = {}
         open_trades = Trade.get_trades_proxy(is_open=True)
         # If not backtesting...
         # TODO: potentially remove the ._log workaround to determine backtest mode.
@@ -73,16 +62,14 @@ class Wallets:
             tot_profit = Trade.get_total_closed_profit()
         else:
             tot_profit = LocalTrade.total_profit
-        tot_in_trades = sum([trade.stake_amount for trade in open_trades])
+        tot_in_trades = sum(trade.stake_amount for trade in open_trades)
 
         current_stake = self.start_cap + tot_profit - tot_in_trades
-        _wallets[self._config['stake_currency']] = Wallet(
-            self._config['stake_currency'],
-            current_stake,
-            0,
-            current_stake
-        )
-
+        _wallets = {
+            self._config['stake_currency']: Wallet(
+                self._config['stake_currency'], current_stake, 0, current_stake
+            )
+        }
         for trade in open_trades:
             curr = self._exchange.get_pair_base_currency(trade.pair)
             _wallets[curr] = Wallet(
@@ -136,11 +123,10 @@ class Wallets:
         """
         if "available_capital" in self._config:
             return self._config['available_capital']
-        else:
-            tot_profit = Trade.get_total_closed_profit()
-            open_stakes = Trade.total_open_trades_stakes()
-            available_balance = self.get_free(self._config['stake_currency'])
-            return available_balance - tot_profit + open_stakes
+        tot_profit = Trade.get_total_closed_profit()
+        open_stakes = Trade.total_open_trades_stakes()
+        available_balance = self.get_free(self._config['stake_currency'])
+        return available_balance - tot_profit + open_stakes
 
     def get_total_stake_amount(self):
         """
@@ -150,18 +136,16 @@ class Wallets:
         (<open_trade stakes> + free amount) * tradable_balance_ratio
         """
         val_tied_up = Trade.total_open_trades_stakes()
-        if "available_capital" in self._config:
-            starting_balance = self._config['available_capital']
-            tot_profit = Trade.get_total_closed_profit()
-            available_amount = starting_balance + tot_profit
-
-        else:
+        if "available_capital" not in self._config:
             # Ensure <tradable_balance_ratio>% is used from the overall balance
             # Otherwise we'd risk lowering stakes with each open trade.
             # (tied up + current free) * ratio) - tied up
-            available_amount = ((val_tied_up + self.get_free(self._config['stake_currency'])) *
-                                self._config['tradable_balance_ratio'])
-        return available_amount
+            return (
+                val_tied_up + self.get_free(self._config['stake_currency'])
+            ) * self._config['tradable_balance_ratio']
+        starting_balance = self._config['available_capital']
+        tot_profit = Trade.get_total_closed_profit()
+        return starting_balance + tot_profit
 
     def get_available_stake_amount(self) -> float:
         """

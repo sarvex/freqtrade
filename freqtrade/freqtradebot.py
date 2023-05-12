@@ -272,9 +272,7 @@ class FreqtradeBot(LoggingMixin):
         for trade in trades:
 
             if not trade.is_open and not trade.fee_updated('sell'):
-                # Get sell fee
-                order = trade.select_order('sell', False)
-                if order:
+                if order := trade.select_order('sell', False):
                     logger.info(f"Updating sell-fee on trade {trade} for order {order.order_id}.")
                     self.update_trade_state(trade, order.order_id,
                                             stoploss_order=order.ft_order_side == 'stoploss')
@@ -282,8 +280,7 @@ class FreqtradeBot(LoggingMixin):
         trades: List[Trade] = Trade.get_open_trades_without_assigned_fees()
         for trade in trades:
             if trade.is_open and not trade.fee_updated('buy'):
-                order = trade.select_order('buy', False)
-                if order:
+                if order := trade.select_order('buy', False):
                     logger.info(f"Updating buy-fee on trade {trade} for order {order.order_id}.")
                     self.update_trade_state(trade, order.order_id)
 
@@ -292,8 +289,7 @@ class FreqtradeBot(LoggingMixin):
         Determine if we ever opened a sell order for this trade.
         If not, try update buy fees - otherwise "refind" the open order we obviously lost.
         """
-        sell_order = trade.select_order('sell', None)
-        if sell_order:
+        if sell_order := trade.select_order('sell', None):
             self.refind_lost_order(trade)
         else:
             self.reupdate_enter_order_fees(trade)
@@ -304,8 +300,7 @@ class FreqtradeBot(LoggingMixin):
         Handles trades where the initial fee-update did not work.
         """
         logger.info(f"Trying to reupdate buy fees for {trade}")
-        order = trade.select_order('buy', False)
-        if order:
+        if order := trade.select_order('buy', False):
             logger.info(f"Updating buy-fee on trade {trade} for order {order.order_id}.")
             self.update_trade_state(trade, order.order_id)
 
@@ -369,8 +364,7 @@ class FreqtradeBot(LoggingMixin):
                         "but checking to sell open trades.")
             return trades_created
         if PairLocks.is_global_lock():
-            lock = PairLocks.get_pair_longest_lock('*')
-            if lock:
+            if lock := PairLocks.get_pair_longest_lock('*'):
                 self.log_once(f"Global pairlock active until "
                               f"{lock.lock_end_time.strftime(constants.DATETIME_PRINT_FORMAT)}. "
                               f"Not creating new trades, reason: {lock.reason}.", logger.info)
@@ -403,8 +397,7 @@ class FreqtradeBot(LoggingMixin):
         analyzed_df, _ = self.dataprovider.get_analyzed_dataframe(pair, self.strategy.timeframe)
         nowtime = analyzed_df.iloc[-1]['date'] if len(analyzed_df) > 0 else None
         if self.strategy.is_pair_locked(pair, nowtime):
-            lock = PairLocks.get_pair_longest_lock(pair, nowtime)
-            if lock:
+            if lock := PairLocks.get_pair_longest_lock(pair, nowtime):
                 self.log_once(f"Pair {pair} is still locked until "
                               f"{lock.lock_end_time.strftime(constants.DATETIME_PRINT_FORMAT)} "
                               f"due to {lock.reason}.",
@@ -426,20 +419,19 @@ class FreqtradeBot(LoggingMixin):
             analyzed_df
         )
 
-        if buy and not sell:
-            stake_amount = self.wallets.get_trade_stake_amount(pair, self.edge)
-
-            bid_check_dom = self.config.get('bid_strategy', {}).get('check_depth_of_market', {})
-            if ((bid_check_dom.get('enabled', False)) and
-                    (bid_check_dom.get('bids_to_ask_delta', 0) > 0)):
-                if self._check_depth_of_market_buy(pair, bid_check_dom):
-                    return self.execute_entry(pair, stake_amount, buy_tag=buy_tag)
-                else:
-                    return False
-
-            return self.execute_entry(pair, stake_amount, buy_tag=buy_tag)
-        else:
+        if not buy or sell:
             return False
+        stake_amount = self.wallets.get_trade_stake_amount(pair, self.edge)
+
+        bid_check_dom = self.config.get('bid_strategy', {}).get('check_depth_of_market', {})
+        if ((bid_check_dom.get('enabled', False)) and
+                    (bid_check_dom.get('bids_to_ask_delta', 0) > 0)):
+            return (
+                self.execute_entry(pair, stake_amount, buy_tag=buy_tag)
+                if self._check_depth_of_market_buy(pair, bid_check_dom)
+                else False
+            )
+        return self.execute_entry(pair, stake_amount, buy_tag=buy_tag)
 
     def _check_depth_of_market_buy(self, pair: str, conf: Dict) -> bool:
         """
@@ -531,7 +523,7 @@ class FreqtradeBot(LoggingMixin):
         enter_limit_filled_price = enter_limit_requested
         amount_requested = amount
 
-        if order_status == 'expired' or order_status == 'rejected':
+        if order_status in ['expired', 'rejected']:
             order_tif = self.strategy.order_time_in_force['buy']
 
             # return false if the order is not filled
@@ -553,7 +545,6 @@ class FreqtradeBot(LoggingMixin):
                 amount = safe_value_fallback(order, 'filled', 'amount')
                 enter_limit_filled_price = safe_value_fallback(order, 'average', 'price')
 
-        # in case of FOK the order may be filled immediately and fully
         elif order_status == 'closed':
             stake_amount = order['cost']
             amount = safe_value_fallback(order, 'filled', 'amount')
@@ -804,9 +795,8 @@ class FreqtradeBot(LoggingMixin):
         if stoploss_order and stoploss_order['status'] in ('canceled', 'cancelled'):
             if self.create_stoploss_order(trade=trade, stop_price=trade.stop_loss):
                 return False
-            else:
-                trade.stoploss_order_id = None
-                logger.warning('Stoploss order was cancelled, but unable to recreate one.')
+            trade.stoploss_order_id = None
+            logger.warning('Stoploss order was cancelled, but unable to recreate one.')
 
         # Finally we check if stoploss on exchange should be moved up because of trailing.
         # Triggered Orders are now real orders - so don't replace stoploss anymore
@@ -1189,9 +1179,7 @@ class FreqtradeBot(LoggingMixin):
         }
 
         if 'fiat_display_currency' in self.config:
-            msg.update({
-                'fiat_currency': self.config['fiat_display_currency'],
-            })
+            msg['fiat_currency'] = self.config['fiat_display_currency']
 
         # Send the message
         self.rpc.send_msg(msg)
@@ -1233,9 +1221,7 @@ class FreqtradeBot(LoggingMixin):
         }
 
         if 'fiat_display_currency' in self.config:
-            msg.update({
-                'fiat_currency': self.config['fiat_display_currency'],
-            })
+            msg['fiat_currency'] = self.config['fiat_display_currency']
 
         # Send the message
         self.rpc.send_msg(msg)
@@ -1403,7 +1389,7 @@ class FreqtradeBot(LoggingMixin):
         """
         if custom_price:
             try:
-                valid_custom_price = float(custom_price)
+                valid_custom_price = custom_price
             except ValueError:
                 valid_custom_price = proposed_price
         else:

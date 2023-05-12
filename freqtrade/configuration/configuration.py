@@ -129,10 +129,10 @@ class Configuration:
         the -v/--verbose, --logfile options
         """
         # Log level
-        config.update({'verbosity': self.args.get('verbosity', 0)})
+        config['verbosity'] = self.args.get('verbosity', 0)
 
         if 'logfile' in self.args and self.args['logfile']:
-            config.update({'logfile': self.args['logfile']})
+            config['logfile'] = self.args['logfile']
 
         setup_logging(config)
 
@@ -156,14 +156,14 @@ class Configuration:
 
         # Set strategy if not specified in config and or if it's non default
         if self.args.get('strategy') or not config.get('strategy'):
-            config.update({'strategy': self.args.get('strategy')})
+            config['strategy'] = self.args.get('strategy')
 
         self._args_to_config(config, argname='strategy_path',
                              logstring='Using additional Strategy lookup path: {}')
 
         if ('db_url' in self.args and self.args['db_url'] and
                 self.args['db_url'] != constants.DEFAULT_DB_PROD_URL):
-            config.update({'db_url': self.args['db_url']})
+            config['db_url'] = self.args['db_url']
             logger.info('Parameter --db-url detected ...')
 
         if config.get('forcebuy_enable', False):
@@ -187,16 +187,16 @@ class Configuration:
             config['exchange']['pair_whitelist'] = []
 
         if 'user_data_dir' in self.args and self.args['user_data_dir']:
-            config.update({'user_data_dir': self.args['user_data_dir']})
+            config['user_data_dir'] = self.args['user_data_dir']
         elif 'user_data_dir' not in config:
             # Default to cwd/user_data (legacy option ...)
-            config.update({'user_data_dir': str(Path.cwd() / 'user_data')})
+            config['user_data_dir'] = str(Path.cwd() / 'user_data')
 
         # reset to user_data_dir so this contains the absolute path.
         config['user_data_dir'] = create_userdata_dir(config['user_data_dir'], create_dir=False)
         logger.info('Using user-data directory: %s ...', config['user_data_dir'])
 
-        config.update({'datadir': create_datadir(config, self.args.get('datadir', None))})
+        config['datadir'] = create_datadir(config, self.args.get('datadir', None))
         logger.info('Using data directory: %s ...', config.get('datadir'))
 
         if self.args.get('exportfilename'):
@@ -222,11 +222,11 @@ class Configuration:
             logstring='Parameter --enable-protections detected, enabling Protections. ...')
 
         if 'use_max_market_positions' in self.args and not self.args["use_max_market_positions"]:
-            config.update({'use_max_market_positions': False})
+            config['use_max_market_positions'] = False
             logger.info('Parameter --disable-max-market-positions detected ...')
             logger.info('max_open_trades set to unlimited ...')
         elif 'max_open_trades' in self.args and self.args['max_open_trades']:
-            config.update({'max_open_trades': self.args['max_open_trades']})
+            config['max_open_trades'] = self.args['max_open_trades']
             logger.info('Parameter --max-open-trades detected, '
                         'overriding max_open_trades to: %s ...', config.get('max_open_trades'))
         elif config['runmode'] in NON_UTIL_MODES:
@@ -302,9 +302,9 @@ class Configuration:
 
         if 'print_colorized' in self.args and not self.args["print_colorized"]:
             logger.info('Parameter --no-color detected ...')
-            config.update({'print_colorized': False})
+            config['print_colorized'] = False
         else:
-            config.update({'print_colorized': True})
+            config['print_colorized'] = True
 
         self._args_to_config(config, argname='print_json',
                              logstring='Parameter --print-json detected ...')
@@ -429,7 +429,7 @@ class Configuration:
             self.runmode = RunMode.DRY_RUN if config.get('dry_run', True) else RunMode.LIVE
             logger.info(f"Runmode set to {self.runmode.value}.")
 
-        config.update({'runmode': self.runmode})
+        config['runmode'] = self.runmode
 
     def _args_to_config(self, config: Dict[str, Any], argname: str,
                         logstring: str, logfun: Optional[Callable] = None,
@@ -446,7 +446,7 @@ class Configuration:
         if (argname in self.args and self.args[argname] is not None
            and self.args[argname] is not False):
 
-            config.update({argname: self.args[argname]})
+            config[argname] = self.args[argname]
             if logfun:
                 logger.info(logstring.format(logfun(config[argname])))
             else:

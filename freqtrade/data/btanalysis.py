@@ -253,9 +253,7 @@ def load_trades_from_db(db_url: str, strategy: Optional[str] = None) -> pd.DataF
     filters = []
     if strategy:
         filters.append(Trade.strategy == strategy)
-    trades = trade_list_to_dataframe(Trade.get_trades(filters).all())
-
-    return trades
+    return trade_list_to_dataframe(Trade.get_trades(filters).all())
 
 
 def load_trades(source: str, db_url: str, exportfilename: Path,
@@ -271,9 +269,7 @@ def load_trades(source: str, db_url: str, exportfilename: Path,
     :return: DataFrame containing trades
     """
     if no_trades:
-        df = pd.DataFrame(columns=BT_DATA_COLUMNS)
-        return df
-
+        return pd.DataFrame(columns=BT_DATA_COLUMNS)
     if source == "DB":
         return load_trades_from_db(db_url)
     elif source == "file":
@@ -309,7 +305,7 @@ def calculate_market_change(data: Dict[str, pd.DataFrame], column: str = "close"
     :return:
     """
     tmp_means = []
-    for pair, df in data.items():
+    for df in data.values():
         start = df[column].dropna().iloc[0]
         end = df[column].dropna().iloc[-1]
         tmp_means.append((end - start) / start)

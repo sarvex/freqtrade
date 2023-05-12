@@ -52,13 +52,12 @@ def create_token(data: dict, secret_key: str, token_type: str = "access") -> str
         expire = datetime.utcnow() + timedelta(days=30)
     else:
         raise ValueError()
-    to_encode.update({
+    to_encode |= {
         "exp": expire,
         "iat": datetime.utcnow(),
         "type": token_type,
-    })
-    encoded_jwt = jwt.encode(to_encode, secret_key, algorithm=ALGORITHM)
-    return encoded_jwt
+    }
+    return jwt.encode(to_encode, secret_key, algorithm=ALGORITHM)
 
 
 def http_basic_or_jwt_token(form_data: HTTPBasicCredentials = Depends(httpbasic),

@@ -67,12 +67,15 @@ class PairLocks():
         if PairLocks.use_db:
             return PairLock.query_pair_locks(pair, now).all()
         else:
-            locks = [lock for lock in PairLocks.locks if (
-                lock.lock_end_time >= now
-                and lock.active is True
-                and (pair is None or lock.pair == pair)
-            )]
-            return locks
+            return [
+                lock
+                for lock in PairLocks.locks
+                if (
+                    lock.lock_end_time >= now
+                    and lock.active is True
+                    and (pair is None or lock.pair == pair)
+                )
+            ]
 
     @staticmethod
     def get_pair_longest_lock(pair: str, now: Optional[datetime] = None) -> Optional[PairLock]:
@@ -127,7 +130,4 @@ class PairLocks():
     @staticmethod
     def get_all_locks() -> List[PairLock]:
 
-        if PairLocks.use_db:
-            return PairLock.query.all()
-        else:
-            return PairLocks.locks
+        return PairLock.query.all() if PairLocks.use_db else PairLocks.locks

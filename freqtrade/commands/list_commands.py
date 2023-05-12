@@ -53,13 +53,18 @@ def _print_objs_tabular(objs: List, print_colorized: bool) -> None:
         reset = ''
 
     names = [s['name'] for s in objs]
-    objs_to_print = [{
-        'name': s['name'] if s['name'] else "--",
-        'location': s['location'].name,
-        'status': (red + "LOAD FAILED" + reset if s['class'] is None
-                   else "OK" if names.count(s['name']) == 1
-                   else yellow + "DUPLICATE NAME" + reset)
-    } for s in objs]
+    objs_to_print = [
+        {
+            'name': s['name'] if s['name'] else "--",
+            'location': s['location'].name,
+            'status': f"{red}LOAD FAILED{reset}"
+            if s['class'] is None
+            else "OK"
+            if names.count(s['name']) == 1
+            else f"{yellow}DUPLICATE NAME{reset}",
+        }
+        for s in objs
+    ]
     for idx, s in enumerate(objs):
         if 'hyperoptable' in s:
             objs_to_print[idx].update({
@@ -172,14 +177,21 @@ def start_list_markets(args: Dict[str, Any], pairs_only: bool = False) -> None:
         headers = ["Id", "Symbol", "Base", "Quote", "Active",
                    *(['Is pair'] if not pairs_only else [])]
 
-        tabular_data = []
-        for _, v in pairs.items():
-            tabular_data.append({'Id': v['id'], 'Symbol': v['symbol'],
-                                 'Base': v['base'], 'Quote': v['quote'],
-                                 'Active': market_is_active(v),
-                                 **({'Is pair': exchange.market_is_tradable(v)}
-                                    if not pairs_only else {})})
-
+        tabular_data = [
+            {
+                'Id': v['id'],
+                'Symbol': v['symbol'],
+                'Base': v['base'],
+                'Quote': v['quote'],
+                'Active': market_is_active(v),
+                **(
+                    {'Is pair': exchange.market_is_tradable(v)}
+                    if not pairs_only
+                    else {}
+                ),
+            }
+            for v in pairs.values()
+        ]
         if (args.get('print_one_column', False) or
                 args.get('list_pairs_print_json', False) or
                 args.get('print_csv', False)):

@@ -61,8 +61,7 @@ class HyperOptAuto(IHyperOpt):
                 yield attr.get_space(attr_name)
 
     def _get_indicator_space(self, category, fallback_method_name):
-        indicator_space = list(self._generate_indicator_space(category))
-        if len(indicator_space) > 0:
+        if indicator_space := list(self._generate_indicator_space(category)):
             return indicator_space
         else:
             return self._get_func(fallback_method_name)()

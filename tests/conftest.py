@@ -138,8 +138,7 @@ def patch_edge(mocker) -> None:
 
 def get_patched_edge(mocker, config) -> Edge:
     patch_edge(mocker)
-    edge = Edge(config)
-    return edge
+    return Edge(config)
 
 # Functions for recurrent object patching
 
@@ -259,7 +258,7 @@ def default_conf(testdatadir):
 
 def get_default_conf(testdatadir):
     """ Returns validated configuration suitable for most tests """
-    configuration = {
+    return {
         "max_open_trades": 1,
         "stake_currency": "BTC",
         "stake_amount": 0.001,
@@ -267,26 +266,18 @@ def get_default_conf(testdatadir):
         "timeframe": '5m',
         "dry_run": True,
         "cancel_open_orders_on_exit": False,
-        "minimal_roi": {
-            "40": 0.0,
-            "30": 0.01,
-            "20": 0.02,
-            "0": 0.04
-        },
+        "minimal_roi": {"40": 0.0, "30": 0.01, "20": 0.02, "0": 0.04},
         "dry_run_wallet": 1000,
         "stoploss": -0.10,
-        "unfilledtimeout": {
-            "buy": 10,
-            "sell": 30
-        },
+        "unfilledtimeout": {"buy": 10, "sell": 30},
         "bid_strategy": {
             "ask_last_balance": 0.0,
             "use_order_book": False,
             "order_book_top": 1,
             "check_depth_of_market": {
                 "enabled": False,
-                "bids_to_ask_delta": 1
-            }
+                "bids_to_ask_delta": 1,
+            },
         },
         "ask_strategy": {
             "use_order_book": False,
@@ -297,20 +288,13 @@ def get_default_conf(testdatadir):
             "enabled": True,
             "key": "key",
             "secret": "secret",
-            "pair_whitelist": [
-                "ETH/BTC",
-                "LTC/BTC",
-                "XRP/BTC",
-                "NEO/BTC"
-            ],
+            "pair_whitelist": ["ETH/BTC", "LTC/BTC", "XRP/BTC", "NEO/BTC"],
             "pair_blacklist": [
                 "DOGE/BTC",
                 "HOT/BTC",
-            ]
+            ],
         },
-        "pairlists": [
-            {"method": "StaticPairList"}
-        ],
+        "pairlists": [{"method": "StaticPairList"}],
         "telegram": {
             "enabled": True,
             "token": "token",
@@ -328,7 +312,6 @@ def get_default_conf(testdatadir):
         "internals": {},
         "export": "none",
     }
-    return configuration
 
 
 @pytest.fixture
@@ -984,27 +967,6 @@ def limit_buy_order_canceled_empty(request):
             'remaining': 0.55,
             'fee': {'cost': 0.0, 'rate': None, 'currency': 'USDT'},
             'trades': []
-        }
-    elif exchange_name == 'binance':
-        return {
-            'info': {},
-            'id': '1234512345',
-            'clientOrderId': 'alb1234123',
-            'timestamp': arrow.utcnow().shift(minutes=-601).int_timestamp,
-            'datetime': arrow.utcnow().shift(minutes=-601).isoformat(),
-            'lastTradeTimestamp': None,
-            'symbol': 'LTC/USDT',
-            'type': 'limit',
-            'side': 'buy',
-            'price': 0.016804,
-            'amount': 0.55,
-            'cost': 0.0,
-            'average': None,
-            'filled': 0.0,
-            'remaining': 0.55,
-            'status': 'canceled',
-            'fee': None,
-            'trades': None
         }
     else:
         return {
